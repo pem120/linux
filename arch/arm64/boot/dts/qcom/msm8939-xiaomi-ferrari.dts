@@ -1,0 +1,186 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+/dts-v1/;
+
+#include "msm8939-pm8916.dtsi"
+#include <dt-bindings/gpio/gpio.h>
+
+
+/ {
+	model = "Xiaomi MI 4i"; // FIXME
+	compatible = "xiaomi,ferrari", "qcom,msm8939"; // FIXME
+	chassis-type = "handset"; // FIXME
+
+	aliases {
+		serial0 = &blsp_uart2;
+	};
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		stdout-path = "framebuffer0";
+
+		framebuffer0: framebuffer@83000000 {
+			compatible = "simple-framebuffer";
+			reg = <0x0 0x83200000 0x0 (1080 * 1920 * 3)>;
+			width = <1080>;
+			height = <1920>;
+			stride = <(1080 * 3)>;
+			format = "r8g8b8";
+			power-domains = <&gcc MDSS_GDSC>;
+			clocks = <&gcc GCC_MDSS_AHB_CLK>,
+				 <&gcc GCC_MDSS_VSYNC_CLK>,
+				 <&gcc GCC_MDSS_AXI_CLK>,
+				 <&gcc GCC_MDSS_MDP_CLK>,
+				 <&gcc GCC_MDSS_BYTE0_CLK>,
+				 <&gcc GCC_MDSS_PCLK0_CLK>,
+				 <&gcc GCC_MDSS_ESC0_CLK>,
+				 <&xo_board>;
+		};
+	};
+
+	reserved-memory {
+
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		//ramoops: ramoops_mem_region@ffe00000 {
+		//	compatible = "ramoops";
+		//	reg = <0 0xffe00000 0 0x00100000>;
+		//	record-size = <0x0>;
+		//	console-size = <0x40000>;
+		//	ftrace-size = <0x1000>;
+		//	status = "okay";
+		//};
+
+		cont_splash_mem: framebuffer@83000000 {
+			reg = <0x0 0x83000000 0x0 0x2000000>;
+			no-map;
+		};
+	};
+
+	usb_id: usb-id {
+		compatible = "linux,extcon-usb-gpio";
+		id-gpios = <&tlmm 110 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&usb_id_default>;
+		pinctrl-names = "default";
+	};
+};
+
+&blsp_uart2 {
+	status = "okay";
+};
+
+&blsp_i2c5 {
+	status = "okay";
+
+	touchscreen@4a {
+		status = "okay"; /* disabled because ghost touch issues */
+		compatible = "atmel,maxtouch";
+		reg = <0x4a>;
+
+		interrupt-parent = <&tlmm>;
+		interrupts = <13 IRQ_TYPE_LEVEL_LOW>;
+
+		reset-gpio = <&tlmm 12 GPIO_ACTIVE_LOW>;
+
+		vdd-supply = <&pm8916_l6>;
+
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&ts_int_active &ts_reset_active &ts_pwr_active>;
+		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend &ts_pwr_suspend>;
+
+		touchscreen-size-x = <1080>;
+		touchscreen-size-y = <1920>;
+	};
+};
+
+&usb {
+	extcon = <&usb_id>, <&usb_id>;
+	status = "okay";
+	dr_mode = "peripheral";
+};
+
+&usb_hs_phy {
+	dr_mode = "peripheral";
+	extcon = <&usb_id>;
+	status = "okay";
+};
+
+&sdhc_1 {
+	status = "okay";
+};
+
+&wcnss {
+	status = "okay";
+};
+
+&wcnss_mem {
+	status = "okay";
+};
+
+&wcnss_iris {
+	compatible = "qcom,wcn3660b";
+};
+
+&gpu {
+	status = "okay";
+};
+
+&tlmm {
+	usb_id_default: usb-id-default-state {
+		pins = "gpio110";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-pull-up;
+	};
+
+	ts_int_active: pmx_ts_int_active {
+		pins = "gpio13";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
+
+	ts_int_suspend: pmx_ts_int_suspend {
+		pins = "gpio13";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	ts_reset_active: pmx_ts_reset_active {
+		pins = "gpio12";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
+
+	ts_reset_suspend: pmx_ts_reset_suspend {
+		pins = "gpio12";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	ts_pwr_active: pmx_ts_pwr_active {
+		pins = "gpio9", "gpio78";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
+
+	ts_pwr_suspend: pmx_ts_pwr_suspend {
+		pins = "gpio9", "gpio78";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+};
+
+&gcc {
+	clocks = <&xo_board>, <&sleep_clk>, <0>, <0>, <0>, <0>, <0>;
+};

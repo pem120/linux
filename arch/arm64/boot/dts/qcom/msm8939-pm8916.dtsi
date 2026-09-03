@@ -57,6 +57,7 @@
 			regulator-max-microvolt = <1350000>;
 			regulator-always-on; /* Needed for L2 */
 		};
+
 		pm8916_s4: s4 {
 			regulator-min-microvolt = <1850000>;
 			regulator-max-microvolt = <2150000>;
@@ -93,6 +94,7 @@
 		pm8916_l6: l6 {
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
+			regulator-always-on;
 		};
 
 		pm8916_l7: l7 {
@@ -131,9 +133,13 @@
 		};
 
 		l14 {};
+
 		l15 {};
+
 		l16 {};
+
 		l17 {};
+
 		l18 {};
 	};
 };
