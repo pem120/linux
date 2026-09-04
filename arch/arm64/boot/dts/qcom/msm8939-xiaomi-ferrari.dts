@@ -5,7 +5,6 @@
 #include "msm8939-pm8916.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 
-
 / {
 	model = "Xiaomi MI 4i"; // FIXME
 	compatible = "xiaomi,ferrari", "qcom,msm8939"; // FIXME
@@ -31,13 +30,13 @@
 			format = "r8g8b8";
 			power-domains = <&gcc MDSS_GDSC>;
 			clocks = <&gcc GCC_MDSS_AHB_CLK>,
-				 <&gcc GCC_MDSS_VSYNC_CLK>,
-				 <&gcc GCC_MDSS_AXI_CLK>,
-				 <&gcc GCC_MDSS_MDP_CLK>,
-				 <&gcc GCC_MDSS_BYTE0_CLK>,
-				 <&gcc GCC_MDSS_PCLK0_CLK>,
-				 <&gcc GCC_MDSS_ESC0_CLK>,
-				 <&xo_board>;
+					 <&gcc GCC_MDSS_VSYNC_CLK>,
+					 <&gcc GCC_MDSS_AXI_CLK>,
+					 <&gcc GCC_MDSS_MDP_CLK>,
+					 <&gcc GCC_MDSS_BYTE0_CLK>,
+					 <&gcc GCC_MDSS_PCLK0_CLK>,
+					 <&gcc GCC_MDSS_ESC0_CLK>,
+					 <&xo_board>;
 		};
 	};
 
@@ -68,6 +67,32 @@
 		pinctrl-0 = <&usb_id_default>;
 		pinctrl-names = "default";
 	};
+
+	reg_ts_vdd: regulator-vdd-ts {
+		compatible = "regulator-fixed";
+		regulator-name = "regulator-vdd-ts";
+		regulator-min-microvolt = <2850000>;
+		regulator-max-microvolt = <2850000>;
+
+		gpio = <&tlmm 78 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+
+		pinctrl-0 = <&ts_vdd_default>;
+		pinctrl-names = "default";
+	};
+
+	reg_ts_vdda: regulator-vdda-ts {
+		compatible = "regulator-fixed";
+		regulator-name = "regulator-vdda-ts";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+
+		gpio = <&tlmm 9 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+
+		pinctrl-0 = <&ts_vdda_default>;
+		pinctrl-names = "default";
+	};
 };
 
 &blsp_uart2 {
@@ -87,14 +112,12 @@
 
 		reset-gpio = <&tlmm 12 GPIO_ACTIVE_LOW>;
 
-		vdd-supply = <&pm8916_l6>;
+		vdda-supply = <&reg_ts_vdda>;
+		vdd-supply = <&reg_ts_vdd>;
 
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&ts_int_active &ts_reset_active &ts_pwr_active>;
 		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend &ts_pwr_suspend>;
-
-		touchscreen-size-x = <1080>;
-		touchscreen-size-y = <1920>;
 	};
 };
 
@@ -138,43 +161,65 @@
 		bias-pull-up;
 	};
 
-	ts_int_active: pmx_ts_int_active {
-		pins = "gpio13";
-		function = "gpio";
-		drive-strength = <16>;
-		bias-pull-up;
+	ts_pins: ts_pins {
+		ts_int_active: pmx_ts_int_active {
+			pins = "gpio13";
+			function = "gpio";
+
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+
+		ts_int_suspend: pmx_ts_int_suspend {
+			pins = "gpio13";
+			function = "gpio";
+
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		ts_reset_active: pmx_ts_reset_active {
+			pins = "gpio12";
+			function = "gpio";
+
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+
+		ts_reset_suspend: pmx_ts_reset_suspend {
+			pins = "gpio12";
+			function = "gpio";
+
+			drive-strength = <2>;
+			bias-pull-down;
+		};
+
+		ts_pwr_active: pmx_ts_pwr_active {
+			pins = "gpio9", "gpio78";
+			function = "gpio";
+
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+
+		ts_pwr_suspend: pmx_ts_pwr_suspend {
+			pins = "gpio9", "gpio78";
+			function = "gpio";
+
+			drive-strength = <2>;
+			bias-disable;
+		};
 	};
 
-	ts_int_suspend: pmx_ts_int_suspend {
-		pins = "gpio13";
+	ts_vdd_default: ts-vdd-default-state {
+		pins = "gpio78";
 		function = "gpio";
 		drive-strength = <2>;
-		bias-pull-down;
+		bias-disable;
 	};
 
-	ts_reset_active: pmx_ts_reset_active {
-		pins = "gpio12";
-		function = "gpio";
-		drive-strength = <16>;
-		bias-pull-up;
-	};
-
-	ts_reset_suspend: pmx_ts_reset_suspend {
-		pins = "gpio12";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-
-	ts_pwr_active: pmx_ts_pwr_active {
-		pins = "gpio9", "gpio78";
-		function = "gpio";
-		drive-strength = <16>;
-		bias-pull-up;
-	};
-
-	ts_pwr_suspend: pmx_ts_pwr_suspend {
-		pins = "gpio9", "gpio78";
+	ts_vdda_default: ts-vdda-default-state {
+		pins = "gpio9";
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
