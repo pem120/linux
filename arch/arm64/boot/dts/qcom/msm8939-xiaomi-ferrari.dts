@@ -4,6 +4,8 @@
 
 #include "msm8939-pm8916.dtsi"
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Xiaomi MI 4i"; // FIXME
@@ -30,13 +32,14 @@
 			format = "r8g8b8";
 			power-domains = <&gcc MDSS_GDSC>;
 			clocks = <&gcc GCC_MDSS_AHB_CLK>,
-					 <&gcc GCC_MDSS_VSYNC_CLK>,
-					 <&gcc GCC_MDSS_AXI_CLK>,
-					 <&gcc GCC_MDSS_MDP_CLK>,
-					 <&gcc GCC_MDSS_BYTE0_CLK>,
-					 <&gcc GCC_MDSS_PCLK0_CLK>,
-					 <&gcc GCC_MDSS_ESC0_CLK>,
-					 <&xo_board>;
+				 <&gcc GCC_MDSS_VSYNC_CLK>,
+				 <&gcc GCC_MDSS_AXI_CLK>,
+				 <&gcc GCC_MDSS_MDP_CLK>,
+				 <&gcc GCC_MDSS_BYTE0_CLK>,
+				 <&gcc GCC_MDSS_PCLK0_CLK>,
+				 <&gcc GCC_MDSS_ESC0_CLK>,
+				 <&xo_board>;
+			status = "disabled";
 		};
 	};
 
@@ -73,25 +76,28 @@
 		regulator-name = "regulator-vdd-ts";
 		regulator-min-microvolt = <2850000>;
 		regulator-max-microvolt = <2850000>;
+		startup-delay-us = <100000>;
 
 		gpio = <&tlmm 78 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 
 		pinctrl-0 = <&ts_vdd_default>;
 		pinctrl-names = "default";
+		regulator-always-on;
 	};
 
 	reg_ts_vdda: regulator-vdda-ts {
 		compatible = "regulator-fixed";
 		regulator-name = "regulator-vdda-ts";
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
 
 		gpio = <&tlmm 9 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 
 		pinctrl-0 = <&ts_vdda_default>;
 		pinctrl-names = "default";
+		regulator-always-on;
 	};
 };
 
@@ -99,8 +105,74 @@
 	status = "okay";
 };
 
+&blsp_i2c1 {
+	status = "okay";
+
+	led-controller@38 {
+		compatible = "ti,lm3533";
+		reg = <0x38>;
+
+		//enable-gpios = <&gpio 110 GPIO_ACTIVE_HIGH>;
+		//vin-supply = <&vdd_3v3_bat>;
+
+		ti,boost-ovp-microvolt = <32000000>;
+		ti,boost-freq-hz = <500000>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		backlight@0 {
+			compatible = "ti,lm3533-backlight";
+			reg = <0>;
+
+			default-brightness = <130>;
+
+			led-max-microamp = <20200>;
+			led-sources = <0 1>;
+			ti,linear-mapping-mode;
+		};
+
+		led@2 {
+			compatible = "ti,lm3533-leds";
+			reg = <2>;
+
+			led-max-microamp = <4744>;
+			led-sources = <0>;
+			color = <LED_COLOR_ID_RED>;
+		};
+
+		led@3 {
+			compatible = "ti,lm3533-leds";
+			reg = <3>;
+
+			led-max-microamp = <4744>;
+			led-sources = <1>;
+			color = <LED_COLOR_ID_BLUE>;
+			linux,default-trigger = "cpu";
+		};
+
+		led@4 {
+			compatible = "ti,lm3533-leds";
+			reg = <4>;
+
+			led-max-microamp = <4744>;
+			led-sources = <2>;
+			color = <LED_COLOR_ID_GREEN>;
+		};
+
+		led@5 {
+			compatible = "ti,lm3533-leds";
+			reg = <5>;
+
+			led-max-microamp = <4744>;
+			led-sources = <3>;
+		};
+	};
+};
+
 &blsp_i2c5 {
 	status = "okay";
+	clock-frequency = <100000>;
 
 	touchscreen@4a {
 		status = "okay"; /* disabled because ghost touch issues */
@@ -110,7 +182,7 @@
 		interrupt-parent = <&tlmm>;
 		interrupts = <13 IRQ_TYPE_LEVEL_LOW>;
 
-		reset-gpio = <&tlmm 12 GPIO_ACTIVE_LOW>;
+		reset-gpios = <&tlmm 12 GPIO_ACTIVE_LOW>;
 
 		vdda-supply = <&reg_ts_vdda>;
 		vdd-supply = <&reg_ts_vdd>;
@@ -137,6 +209,48 @@
 	status = "okay";
 };
 
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	status = "okay";
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&mdss_default>;
+	pinctrl-1 = <&mdss_sleep>;
+
+	panel@0 {
+		compatible = "xiaomi,ferrari-panel";
+		reg = <0>;
+
+		power-supply = <&pm8916_l17>;
+		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				panel_in: endpoint {
+					remote-endpoint = <&mdss_dsi0_out>;
+				};
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&panel_in>;
+};
+
+&mdss_dsi0_phy {
+	status = "okay";
+	qcom,dsi-phy-regulator-ldo-mode;
+};
+
 &wcnss {
 	status = "okay";
 };
@@ -151,6 +265,13 @@
 
 &gpu {
 	status = "okay";
+};
+
+&pm8916_rpm_regulators {
+	pm8916_l17: l17 {
+		regulator-min-microvolt = <2850000>;
+		regulator-max-microvolt = <2850000>;
+	};
 };
 
 &tlmm {
@@ -195,21 +316,31 @@
 		};
 	};
 
+	mdss_default: mdss_default {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	mdss_sleep: mdss_sleep {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
 	ts_vdd_default: ts-vdd-default-state {
 		pins = "gpio78";
 		function = "gpio";
-		drive-strength = <2>;
+		drive-strength = <16>;
 		bias-disable;
 	};
 
 	ts_vdda_default: ts-vdda-default-state {
 		pins = "gpio9";
 		function = "gpio";
-		drive-strength = <2>;
+		drive-strength = <16>;
 		bias-disable;
 	};
-};
-
-&gcc {
-	clocks = <&xo_board>, <&sleep_clk>, <0>, <0>, <0>, <0>, <0>;
 };
