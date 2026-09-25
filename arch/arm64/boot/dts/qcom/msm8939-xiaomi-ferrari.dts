@@ -71,34 +71,30 @@
 		pinctrl-names = "default";
 	};
 
-	reg_ts_vdd: regulator-vdd-ts {
+	reg_ts_ldo: regulator-ts-ldo {
 		compatible = "regulator-fixed";
-		regulator-name = "regulator-vdd-ts";
-		regulator-min-microvolt = <2850000>;
-		regulator-max-microvolt = <2850000>;
-		startup-delay-us = <100000>;
-
-		gpio = <&tlmm 78 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-
-		pinctrl-0 = <&ts_vdd_default>;
-		pinctrl-names = "default";
-		regulator-always-on;
-	};
-
-	reg_ts_vdda: regulator-vdda-ts {
-		compatible = "regulator-fixed";
-		regulator-name = "regulator-vdda-ts";
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-
+		regulator-name = "ts-ldo";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		vin-supply = <&pm8916_l6>;
 		gpio = <&tlmm 9 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-
-		pinctrl-0 = <&ts_vdda_default>;
+		pinctrl-0 = <&ts_ldo_default>;
 		pinctrl-names = "default";
-		regulator-always-on;
 	};
+
+	reg_ts_vdd: regulator-ts-vdd {
+		compatible = "regulator-fixed";
+		regulator-name = "ts-vdd";
+		regulator-min-microvolt = <2850000>;
+		regulator-max-microvolt = <2850000>;
+		vin-supply = <&reg_ts_ldo>;
+		gpio = <&tlmm 78 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		pinctrl-0 = <&ts_vdd_default>;
+		pinctrl-names = "default";
+	};
+
 };
 
 &blsp_uart2 {
@@ -175,21 +171,21 @@
 	clock-frequency = <100000>;
 
 	touchscreen@4a {
-		status = "okay"; /* disabled because ghost touch issues */
 		compatible = "atmel,maxtouch";
 		reg = <0x4a>;
 
-		interrupt-parent = <&tlmm>;
-		interrupts = <13 IRQ_TYPE_LEVEL_LOW>;
+		interrupts-extended = <&tlmm 13 IRQ_TYPE_LEVEL_LOW>;
 
 		reset-gpios = <&tlmm 12 GPIO_ACTIVE_LOW>;
 
-		vdda-supply = <&reg_ts_vdda>;
+		vdda-supply = <&pm8916_l6>;
 		vdd-supply = <&reg_ts_vdd>;
 
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&ts_int_active &ts_reset_active>;
-		pinctrl-1 = <&ts_int_suspend &ts_reset_suspend>;
+		pinctrl-0 = <&ts_int_reset_default>;
+		pinctrl-names = "default";
+
+		/* the controller reports no touches until T97 is enabled */
+		atmel,enable-t97;
 	};
 };
 
@@ -282,38 +278,25 @@
 		bias-pull-up;
 	};
 
-	ts_pins: ts_pins {
-		ts_int_active: pmx_ts_int_active {
-			pins = "gpio13";
-			function = "gpio";
+	ts_int_reset_default: ts-int-reset-default-state {
+		pins = "gpio12", "gpio13";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
 
-			drive-strength = <16>;
-			bias-pull-up;
-		};
+	ts_ldo_default: ts-ldo-default-state {
+		pins = "gpio9";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
+	};
 
-		ts_int_suspend: pmx_ts_int_suspend {
-			pins = "gpio13";
-			function = "gpio";
-
-			drive-strength = <2>;
-			bias-pull-down;
-		};
-
-		ts_reset_active: pmx_ts_reset_active {
-			pins = "gpio12";
-			function = "gpio";
-
-			drive-strength = <16>;
-			bias-pull-up;
-		};
-
-		ts_reset_suspend: pmx_ts_reset_suspend {
-			pins = "gpio12";
-			function = "gpio";
-
-			drive-strength = <2>;
-			bias-pull-down;
-		};
+	ts_vdd_default: ts-vdd-default-state {
+		pins = "gpio78";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-up;
 	};
 
 	mdss_default: mdss_default {
@@ -328,19 +311,5 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-down;
-	};
-
-	ts_vdd_default: ts-vdd-default-state {
-		pins = "gpio78";
-		function = "gpio";
-		drive-strength = <16>;
-		bias-disable;
-	};
-
-	ts_vdda_default: ts-vdda-default-state {
-		pins = "gpio9";
-		function = "gpio";
-		drive-strength = <16>;
-		bias-disable;
 	};
 };
