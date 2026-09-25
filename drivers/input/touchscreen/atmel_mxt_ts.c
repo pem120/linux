@@ -1907,11 +1907,11 @@ static int mxt_read_info_block(struct mxt_data *data)
 	 * issue or else device is not using Object Based Protocol (eg i2c-hid)
 	 */
 	if ((data->info_crc == 0) || (data->info_crc != calculated_crc)) {
-		dev_warn(&client->dev,
+		dev_err(&client->dev,
 			"Info Block CRC error calculated=0x%06X read=0x%06X\n",
 			calculated_crc, data->info_crc);
-		//error = -EIO;
-		//goto err_free_mem;
+		error = -EIO;
+		goto err_free_mem;
 	}
 
 	data->raw_info_block = id_buf;
