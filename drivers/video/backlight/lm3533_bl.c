@@ -14,6 +14,7 @@
 #include <linux/backlight.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <linux/mod_devicetable.h>
 
 #include <linux/mfd/lm3533.h>
 
